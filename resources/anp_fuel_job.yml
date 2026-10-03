@@ -27,3 +27,17 @@ resources:
             notebook_path: ../src/02_bronze.py
             base_parameters:
               catalog: ${var.catalog}
+
+        # Unit tests for the silver rules; runs alongside ingest/bronze and gates silver.
+        - task_key: test
+          notebook_task:
+            notebook_path: ../tests/run_tests.py
+
+        - task_key: silver
+          depends_on:
+            - task_key: bronze
+            - task_key: test
+          notebook_task:
+            notebook_path: ../src/03_silver.py
+            base_parameters:
+              catalog: ${var.catalog}
