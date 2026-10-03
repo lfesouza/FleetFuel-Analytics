@@ -1,0 +1,22 @@
+# Databricks Asset Bundle for the ANP fuel price pipeline.
+bundle:
+  name: anp_fuel_pipeline
+
+include:
+  - resources/*.yml
+
+variables:
+  catalog:
+    description: Unity Catalog catalog that holds all pipeline schemas.
+    default: anp_fuel
+  years:
+    description: Comma-separated list of ANP survey years to ingest.
+    default: "2023,2024,2025"
+
+targets:
+  dev:
+    default: true
+    mode: development
+    # Credentials come from the matching profile in ~/.databrickscfg.
+    workspace:
+      host: https://dbc-8c6f524f-f86f.cloud.databricks.com

@@ -1,0 +1,12 @@
+resources:
+  jobs:
+    anp_fuel_pipeline:
+      name: anp_fuel_pipeline
+      # No schedule: run manually with `databricks bundle run anp_fuel_pipeline -t dev`.
+      # No cluster definitions: every task runs on serverless jobs compute.
+      tasks:
+        - task_key: setup
+          notebook_task:
+            notebook_path: ../src/00_setup.sql
+            base_parameters:
+              catalog: ${var.catalog}

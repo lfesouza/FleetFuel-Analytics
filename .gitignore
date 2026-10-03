@@ -1,0 +1,21 @@
+# Databricks bundle state
+.databricks/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Local ANP downloads (plan B)
+data/
+
+# Power BI
+*.pbix
+powerbi/**/.pbi/cache.abf
+powerbi/**/.pbi/localSettings.json
+
+# Editors / OS
+.vscode/
+.DS_Store
+Thumbs.db
