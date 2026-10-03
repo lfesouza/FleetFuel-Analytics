@@ -10,3 +10,20 @@ resources:
             notebook_path: ../src/00_setup.sql
             base_parameters:
               catalog: ${var.catalog}
+
+        - task_key: ingest
+          depends_on:
+            - task_key: setup
+          notebook_task:
+            notebook_path: ../src/01_ingest.py
+            base_parameters:
+              catalog: ${var.catalog}
+              years: ${var.years}
+
+        - task_key: bronze
+          depends_on:
+            - task_key: ingest
+          notebook_task:
+            notebook_path: ../src/02_bronze.py
+            base_parameters:
+              catalog: ${var.catalog}
