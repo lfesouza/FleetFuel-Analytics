@@ -19,3 +19,6 @@ powerbi/**/.pbi/localSettings.json
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Private planning docs
+PRD.md
