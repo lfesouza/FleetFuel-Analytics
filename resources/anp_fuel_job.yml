@@ -2,7 +2,13 @@ resources:
   jobs:
     anp_fuel_pipeline:
       name: anp_fuel_pipeline
-      # No schedule: run manually with `databricks bundle run anp_fuel_pipeline -t dev`.
+      # Weekly refresh: picks up the monthly files ANP publishes. Can also run manually with
+      # `databricks bundle run anp_fuel_pipeline -t dev`.
+      schedule:
+        quartz_cron_expression: "0 0 6 ? * MON"
+        timezone_id: America/Sao_Paulo
+        # Explicit, because development mode pauses schedules that leave this unset.
+        pause_status: UNPAUSED
       # No cluster definitions: every task runs on serverless jobs compute.
       tasks:
         - task_key: setup
@@ -18,7 +24,7 @@ resources:
             notebook_path: ../src/01_ingest.py
             base_parameters:
               catalog: ${var.catalog}
-              years: ${var.years}
+              start_year: ${var.start_year}
 
         - task_key: bronze
           depends_on:

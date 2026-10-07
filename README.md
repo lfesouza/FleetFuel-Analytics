@@ -23,7 +23,7 @@ flowchart LR
     GOLD -->|Import mode| PBI["Power BI report"]
 ```
 
-A single job, `anp_fuel_pipeline`, runs every step on serverless compute:
+A single job, `anp_fuel_pipeline`, runs every step on serverless compute. It is scheduled every Monday at 06:00 (America/Sao_Paulo), so new monthly files from ANP flow through to gold without manual work:
 
 ```mermaid
 flowchart LR
@@ -34,7 +34,7 @@ flowchart LR
 | Task | Source | What it does |
 |---|---|---|
 | `setup` | [`src/00_setup.sql`](src/00_setup.sql) | Creates the catalog, the `raw`/`bronze`/`silver`/`gold` schemas and the landing Volume. |
-| `ingest` | [`src/01_ingest.py`](src/01_ingest.py) | Downloads the ANP diesel and gasoline CSVs for the configured years. Files already in the Volume are skipped. |
+| `ingest` | [`src/01_ingest.py`](src/01_ingest.py) | Finds the ANP diesel and gasoline CSVs on the open data page, from `start_year` up to the latest published month. Files already in the Volume are skipped. |
 | `bronze` | [`src/02_bronze.py`](src/02_bronze.py) | Loads new CSVs into `bronze.prices_raw` as strings, with source file and load timestamp. Incremental and idempotent. |
 | `test` | [`tests/run_tests.py`](tests/run_tests.py) | Runs the pytest suite for the silver rules on serverless. Silver does not run if a test fails. |
 | `silver` | [`src/03_silver.py`](src/03_silver.py) | Renames columns to English, parses prices and dates, normalizes text, keeps DIESEL, DIESEL S10 and GASOLINA, deduplicates. |
@@ -115,13 +115,13 @@ The report connects to the Databricks SQL Warehouse in **Import** mode and reads
 3. Optional: override the bundle variables.
 
    ```bash
-   databricks bundle deploy -t dev --var="catalog=my_catalog" --var="years=2024,2025"
+   databricks bundle deploy -t dev --var="catalog=my_catalog" --var="start_year=2024"
    ```
 
 | Variable | Default | Description |
 |---|---|---|
 | `catalog` | `anp_fuel` | Unity Catalog catalog for all schemas. |
-| `years` | `2023,2024,2025` | ANP survey years to ingest. |
+| `start_year` | `2023` | First ANP survey year to ingest. Ingestion always runs up to the current year. |
 
 4. In Power BI Desktop, connect to your SQL Warehouse with the Azure Databricks connector, import the `gold` tables, and add the measures from `powerbi/measures.dax`.
 

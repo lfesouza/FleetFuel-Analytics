@@ -9,9 +9,9 @@ variables:
   catalog:
     description: Unity Catalog catalog that holds all pipeline schemas.
     default: anp_fuel
-  years:
-    description: Comma-separated list of ANP survey years to ingest.
-    default: "2023,2024,2025"
+  start_year:
+    description: First ANP survey year to ingest; ingestion always runs up to the current year.
+    default: "2023"
 
 targets:
   dev:
