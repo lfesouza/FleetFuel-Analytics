@@ -27,7 +27,7 @@ COLUMN_MAP = {
     "bandeira": "brand",
 }
 
-PRODUCTS_IN_SCOPE = ["DIESEL", "DIESEL S10", "GASOLINA"]
+PRODUCTS_IN_SCOPE = ["DIESEL", "DIESEL S10", "ETANOL", "GASOLINA"]
 
 # Text columns that are upper-cased and stripped of extra spaces.
 TEXT_COLUMNS = ["region", "state", "city", "station_name", "station_id", "district", "product", "unit", "brand"]

@@ -8,7 +8,7 @@ Built on **Databricks Free Edition** (serverless only), deployed as a **Databric
 
 Diesel is one of the largest costs for any truck fleet. ANP publishes weekly prices from thousands of gas stations across Brazil, but only as raw monthly CSVs. This project answers three questions:
 
-- What is the average diesel and gasoline price today, by state and region?
+- What is the average diesel, gasoline and ethanol price today, by state and region?
 - How have prices moved over the last 12 months?
 - How much would a given fleet spend on fuel per month in each region?
 
@@ -34,10 +34,10 @@ flowchart LR
 | Task | Source | What it does |
 |---|---|---|
 | `setup` | [`src/00_setup.sql`](src/00_setup.sql) | Creates the catalog, the `raw`/`bronze`/`silver`/`gold` schemas and the landing Volume. |
-| `ingest` | [`src/01_ingest.py`](src/01_ingest.py) | Finds the ANP diesel and gasoline CSVs on the open data page, from `start_year` up to the latest published month. Files already in the Volume are skipped. |
+| `ingest` | [`src/01_ingest.py`](src/01_ingest.py) | Finds the ANP diesel and gasoline/ethanol CSVs on the open data page, from `start_year` up to the latest published month. Files already in the Volume are skipped. |
 | `bronze` | [`src/02_bronze.py`](src/02_bronze.py) | Loads new CSVs into `bronze.prices_raw` as strings, with source file and load timestamp. Incremental and idempotent. |
 | `test` | [`tests/run_tests.py`](tests/run_tests.py) | Runs the pytest suite for the silver rules on serverless. Silver does not run if a test fails. |
-| `silver` | [`src/03_silver.py`](src/03_silver.py) | Renames columns to English, parses prices and dates, normalizes text, keeps DIESEL, DIESEL S10 and GASOLINA, deduplicates. |
+| `silver` | [`src/03_silver.py`](src/03_silver.py) | Renames columns to English, parses prices and dates, normalizes text, keeps DIESEL, DIESEL S10, GASOLINA and ETANOL, deduplicates. |
 | `gold` | [`src/04_gold.sql`](src/04_gold.sql) | Rebuilds the star schema and a weekly aggregate. |
 
 ### Gold model

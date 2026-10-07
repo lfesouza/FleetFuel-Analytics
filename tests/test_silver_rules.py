@@ -103,7 +103,7 @@ def test_filter_scope_keeps_products_in_scope_with_price(spark):
         bronze_row(produto="DIESEL", valor_de_venda=""),
     ]
     df = filter_scope(cast_and_normalize(rename_columns(bronze_df(spark, rows))))
-    assert sorted(r.product for r in df.collect()) == ["DIESEL", "DIESEL S10", "GASOLINA"]
+    assert sorted(r.product for r in df.collect()) == ["DIESEL", "DIESEL S10", "ETANOL", "GASOLINA"]
 
 
 def test_deduplicate_keeps_one_row_per_station_product_day(spark):
@@ -123,7 +123,7 @@ def test_clean_end_to_end(spark):
     rows = [
         bronze_row(),
         bronze_row(),  # exact duplicate
-        bronze_row(produto="ETANOL"),
+        bronze_row(produto="GNV"),  # out of scope
         bronze_row(valor_de_venda=None),
     ]
     df = clean(bronze_df(spark, rows))

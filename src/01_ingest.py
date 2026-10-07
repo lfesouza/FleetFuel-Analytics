@@ -21,7 +21,7 @@ current_year = datetime.date.today().year
 # (e.g. "02-cados-abertos-preco-gasolina-etanol.csv", "04-dados-abertos-precos-diesel-gnv" without extension).
 LISTING_URL = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/serie-historica-de-precos-de-combustiveis"
 LINK_PATTERN = re.compile(r'href="(https://[^"]*/shpc/dsan/(\d{4})/([^"]+))"')
-# "diesel-gnv" carries DIESEL and DIESEL S10; "gasolina-etanol" carries GASOLINA. Other products are filtered in silver.
+# "diesel-gnv" carries DIESEL and DIESEL S10; "gasolina-etanol" carries GASOLINA and ETANOL. Other products are filtered in silver.
 FILE_GROUPS = ["diesel-gnv", "gasolina-etanol"]
 VOLUME_DIR = f"/Volumes/{catalog}/raw/files"
 
