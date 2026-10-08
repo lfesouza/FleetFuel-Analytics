@@ -1,0 +1,85 @@
+table dim_date
+	lineageTag: 59630eb6-ac2f-4911-a746-89fd10da619f
+	dataCategory: Time
+
+	column date_key
+		dataType: int64
+		formatString: 0
+		lineageTag: c900267e-830c-41bc-8d14-4100d68442e1
+		summarizeBy: none
+		sourceColumn: date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column date
+		dataType: dateTime
+		isKey
+		formatString: Long Date
+		lineageTag: 052b0b8c-6677-425c-b622-a2db35f44440
+		summarizeBy: none
+		sourceColumn: date
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column week
+		dataType: int64
+		formatString: 0
+		lineageTag: d1874a7f-0b18-46ec-9286-7e9bdcc70888
+		summarizeBy: sum
+		sourceColumn: week
+
+		annotation SummarizationSetBy = Automatic
+
+	column week_start
+		dataType: dateTime
+		formatString: Long Date
+		lineageTag: 0fff6010-3a8f-4a22-aea5-9bb4f9620c04
+		summarizeBy: none
+		sourceColumn: week_start
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column month
+		dataType: int64
+		formatString: 0
+		lineageTag: eb837414-a653-41fa-83c3-b94596f6260d
+		summarizeBy: sum
+		sourceColumn: month
+
+		annotation SummarizationSetBy = Automatic
+
+	column quarter
+		dataType: int64
+		formatString: 0
+		lineageTag: 359fd3ff-e970-4000-9f0e-9204ea2be5ed
+		summarizeBy: sum
+		sourceColumn: quarter
+
+		annotation SummarizationSetBy = Automatic
+
+	column year
+		dataType: int64
+		formatString: 0
+		lineageTag: 8fd72e2a-7ca8-4021-a10b-891ad9dfc021
+		summarizeBy: sum
+		sourceColumn: year
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_date = m
+		mode: import
+		source =
+				let
+				    Fonte = DatabricksMultiCloud.Catalogs("dbc-8c6f524f-f86f.cloud.databricks.com", "/sql/1.0/warehouses/6de3517e3222deb1", [Catalog=null, Database=null, QueryTags=null, EnableAutomaticProxyDiscovery=null, Implementation="2.0", Protocol=null]),
+				    anp_fuel_Database = Fonte{[Name="anp_fuel",Kind="Database"]}[Data],
+				    gold_Schema = anp_fuel_Database{[Name="gold",Kind="Schema"]}[Data],
+				    dim_date_Table = gold_Schema{[Name="dim_date",Kind="Table"]}[Data]
+				in
+				    dim_date_Table
+
+	annotation PBI_ResultType = Table
+

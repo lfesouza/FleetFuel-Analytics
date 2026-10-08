@@ -1,6 +1,6 @@
 # FleetFuel Analytics
 
-End-to-end data pipeline that turns Brazil's public fuel price survey (ANP) into a star schema on Databricks and a Power BI report with a fleet fuel cost simulator.
+End-to-end data pipeline that turns Brazil's public fuel price survey (ANP) into a star schema on Databricks and a Power BI report that compares fuel prices across Brazil and shows where ethanol pays off over gasoline.
 
 Built on **Databricks Free Edition** (serverless only), deployed as a **Databricks Asset Bundle**, and following the **medallion architecture** (raw → bronze → silver → gold) in **Unity Catalog**.
 
@@ -10,7 +10,7 @@ Diesel is one of the largest costs for any truck fleet. ANP publishes weekly pri
 
 - What is the average diesel, gasoline and ethanol price today, by state and region?
 - How have prices moved over the last 12 months?
-- How much would a given fleet spend on fuel per month in each region?
+- In which states is ethanol cheaper to run than gasoline?
 
 ## Architecture
 
@@ -91,13 +91,13 @@ Each layer fails its task when a check does not pass, so bad data never reaches 
 
 ## Power BI
 
-The report connects to the Databricks SQL Warehouse in **Import** mode and reads only the `gold` schema. All measures are in [`powerbi/measures.dax`](powerbi/measures.dax).
+The report connects to the Databricks SQL Warehouse in **Import** mode and reads only the `gold` schema. It is saved as a Power BI Project (`.pbip`), so the model and the report are plain text: the measures are in [`Medidas.tmdl`](powerbi/Fleet_Fuel_Analytics.SemanticModel/definition/tables/Medidas.tmdl).
 
-- **Overview:** current average price, 12-month change, and a map by state.
-- **Trend:** weekly price by region and product.
-- **Fleet simulator:** monthly fuel cost by region, driven by three what-if parameters (number of trucks, km per truck per month, consumption in km/l):
+- **Overview:** current average price, 12-month change, a map by state, and the difference to the national average.
+- **Trend:** price over time by region and product.
+- **Fuel Choice:** ethanol/gasoline price ratio by state and over time. Ethanol pays off when the ratio is below 70%, the usual break-even point given its lower energy content:
 
-  `monthly cost = trucks × km per truck ÷ km per liter × average DIESEL S10 price`
+  `ratio = average ETANOL price ÷ average GASOLINA price`
 
 ## How to run
 
@@ -123,7 +123,7 @@ The report connects to the Databricks SQL Warehouse in **Import** mode and reads
 | `catalog` | `anp_fuel` | Unity Catalog catalog for all schemas. |
 | `start_year` | `2023` | First ANP survey year to ingest. Ingestion always runs up to the current year. |
 
-4. In Power BI Desktop, connect to your SQL Warehouse with the Azure Databricks connector, import the `gold` tables, and add the measures from `powerbi/measures.dax`.
+4. Open `powerbi/Fleet_Fuel_Analytics.pbip` in Power BI Desktop, point the Databricks data source to your workspace host and SQL Warehouse (*Transform data → Data source settings*), and refresh.
 
 ## Project structure
 
@@ -144,7 +144,9 @@ The report connects to the Databricks SQL Warehouse in **Import** mode and reads
 │   ├── run_tests.py          # runs pytest as a job task
 │   └── test_silver_rules.py
 └── powerbi/
-    └── measures.dax
+    ├── Fleet_Fuel_Analytics.pbip
+    ├── Fleet_Fuel_Analytics.Report/        # pages and visuals
+    └── Fleet_Fuel_Analytics.SemanticModel/ # tables, relationships, measures (TMDL)
 ```
 
 ## Tech stack

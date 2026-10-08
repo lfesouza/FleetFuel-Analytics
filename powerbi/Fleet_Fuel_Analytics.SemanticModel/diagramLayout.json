@@ -1,0 +1,139 @@
+{
+  "version": "1.1.0",
+  "diagrams": [
+    {
+      "ordinal": 0,
+      "scrollPosition": {
+        "x": 0,
+        "y": 0
+      },
+      "nodes": [
+        {
+          "location": {
+            "x": 91.941430249414,
+            "y": 547.09216897073156
+          },
+          "nodeIndex": "agg_price_weekly",
+          "nodeLineageTag": "0afb3554-8a4c-406a-8749-b4142dc6ebf9",
+          "size": {
+            "height": 272,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 889.3116404111604,
+            "y": 192.37330823288511
+          },
+          "nodeIndex": "dim_date",
+          "nodeLineageTag": "59630eb6-ac2f-4911-a746-89fd10da619f",
+          "size": {
+            "height": 248,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 101,
+            "y": 206.3125
+          },
+          "nodeIndex": "dim_location",
+          "nodeLineageTag": "d78aa967-8a07-42cf-9008-cb21e77e6748",
+          "size": {
+            "height": 200,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 495.12141607972944,
+            "y": 568.8601614521599
+          },
+          "nodeIndex": "dim_product",
+          "nodeLineageTag": "ec9836b9-aa87-4e9b-9bc1-d6c3896bbc0a",
+          "size": {
+            "height": 152,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 494.92596058521815,
+            "y": 187.3125
+          },
+          "nodeIndex": "fact_price",
+          "nodeLineageTag": "6c136e55-013f-4c5c-87dc-90e6c6beadea",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1098.7513227958195,
+            "y": 940.37601695321723
+          },
+          "nodeIndex": "Medidas",
+          "nodeLineageTag": "78ee13c7-2abc-43b7-926c-36c37759b5df",
+          "size": {
+            "height": 104,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 859.44227899168061,
+            "y": 661.20317108709969
+          },
+          "nodeIndex": "Trucks",
+          "nodeLineageTag": "b9daf674-1cb5-4e38-bc78-fcbca3cbe940",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1116.284995832903,
+            "y": 660.31489061248544
+          },
+          "nodeIndex": "Km per Truck",
+          "nodeLineageTag": "1b96bf7e-7f73-4561-8d9d-8a7a6207effa",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        },
+        {
+          "location": {
+            "x": 1376.2879149712294,
+            "y": 662.93272277194444
+          },
+          "nodeIndex": "Consumption",
+          "nodeLineageTag": "42632270-856f-4587-b26b-a953697e1add",
+          "size": {
+            "height": 224,
+            "width": 234
+          },
+          "zIndex": 0
+        }
+      ],
+      "name": "Todas as tabelas",
+      "zoomValue": 63.287087723234038,
+      "pinKeyFieldsToTop": false,
+      "showExtraHeaderInfo": false,
+      "hideKeyFieldsWhenCollapsed": false,
+      "tablesLocked": false
+    }
+  ],
+  "selectedDiagram": "Todas as tabelas",
+  "defaultDiagram": "Todas as tabelas"
+}

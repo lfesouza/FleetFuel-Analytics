@@ -1,0 +1,12 @@
+relationship AutoDetected_5701b59c-b9fe-486b-a146-43eb5bc65770
+	fromColumn: fact_price.date_key
+	toColumn: dim_date.date_key
+
+relationship AutoDetected_1c97e976-1cb2-48cd-bb77-efd033ae9fff
+	fromColumn: fact_price.location_key
+	toColumn: dim_location.location_key
+
+relationship AutoDetected_2236cfe5-2fba-40cf-b54e-5df31be27c44
+	fromColumn: fact_price.product_key
+	toColumn: dim_product.product_key
+

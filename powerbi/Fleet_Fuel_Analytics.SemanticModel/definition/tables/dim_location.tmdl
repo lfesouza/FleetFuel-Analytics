@@ -1,0 +1,119 @@
+table dim_location
+	lineageTag: d78aa967-8a07-42cf-9008-cb21e77e6748
+
+	column location_key
+		dataType: int64
+		formatString: 0
+		lineageTag: 98792500-860e-41d6-aa1b-da93369907d9
+		summarizeBy: none
+		sourceColumn: location_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column city
+		dataType: string
+		lineageTag: 05183fff-74e7-41b7-86f1-994b1cbc4092
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: city
+
+		annotation SummarizationSetBy = Automatic
+
+	column state
+		dataType: string
+		lineageTag: e562ec49-9873-4088-95d8-dc79f9df2fee
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		sourceColumn: state
+
+		annotation SummarizationSetBy = Automatic
+
+	column region_code
+		dataType: string
+		lineageTag: b7786d84-9d37-4be1-ae1f-b099f4491a2c
+		summarizeBy: none
+		sourceColumn: region_code
+
+		annotation SummarizationSetBy = Automatic
+
+	column region
+		dataType: string
+		lineageTag: 3b63a363-0106-4085-bf6a-b14ac8a5f905
+		summarizeBy: none
+		sourceColumn: region
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'State Map' =
+			
+			SWITCH (
+			    dim_location[state],
+			    "AC", "Acre",
+			    "AL", "Alagoas",
+			    "AP", "Amapá",
+			    "AM", "Amazonas",
+			    "BA", "Bahia",
+			    "CE", "Ceará",
+			    "DF", "Distrito Federal",
+			    "ES", "Espírito Santo",
+			    "GO", "Goiás",
+			    "MA", "Maranhão",
+			    "MT", "Mato Grosso",
+			    "MS", "Mato Grosso do Sul",
+			    "MG", "Minas Gerais",
+			    "PA", "Pará",
+			    "PB", "Paraíba",
+			    "PR", "Paraná",
+			    "PE", "Pernambuco",
+			    "PI", "Piauí",
+			    "RJ", "Rio de Janeiro",
+			    "RN", "Rio Grande do Norte",
+			    "RS", "Rio Grande do Sul",
+			    "RO", "Rondônia",
+			    "RR", "Roraima",
+			    "SC", "Santa Catarina",
+			    "SP", "São Paulo",
+			    "SE", "Sergipe",
+			    "TO", "Tocantins",
+			    dim_location[state]
+			) & ", Brasil"
+		lineageTag: c64cec59-510d-4782-927e-e4b7125c35d1
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column country
+		dataType: string
+		lineageTag: a513d9af-b016-4d09-85bf-2bba583cd3ca
+		dataCategory: Country
+		summarizeBy: none
+		sourceColumn: country
+
+		annotation SummarizationSetBy = Automatic
+
+	column state2
+		dataType: string
+		lineageTag: e7f8b8a0-6fa7-48b0-a941-19d2ff969684
+		dataCategory: StateOrProvince
+		summarizeBy: none
+		sourceColumn: state2
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_location = m
+		mode: import
+		source =
+				let
+				    Fonte = DatabricksMultiCloud.Catalogs("dbc-8c6f524f-f86f.cloud.databricks.com", "/sql/1.0/warehouses/6de3517e3222deb1", [Catalog=null, Database=null, QueryTags=null, EnableAutomaticProxyDiscovery=null, Implementation="2.0", Protocol=null]),
+				    anp_fuel_Database = Fonte{[Name="anp_fuel",Kind="Database"]}[Data],
+				    gold_Schema = anp_fuel_Database{[Name="gold",Kind="Schema"]}[Data],
+				    dim_location_Table = gold_Schema{[Name="dim_location",Kind="Table"]}[Data],
+				  #"Personalização adicionada" = Table.AddColumn(dim_location_Table, "País", each "Brazil"),
+				  #"Colunas renomeadas" = Table.RenameColumns(#"Personalização adicionada", {{"País", "country"}}),
+				  #"Personalização adicionada 1" = Table.AddColumn(#"Colunas renomeadas", "state2", each if [state] = "AC" then "Acre" else if [state] = "AL" then "Alagoas" else if [state] = "AP" then "Amapa" else if [state] = "AM" then "Amazonas" else if [state] = "BA" then "Bahia" else if [state] = "CE" then "Ceara" else if [state] = "DF" then "Distrito Federal" else if [state] = "ES" then "Espirito Santo" else if [state] = "GO" then "Goias" else if [state] = "MA" then "Maranhao" else if [state] = "MT" then "Mato Grosso" else if [state] = "MS" then "Mato Grosso do Sul" else if [state] = "MG" then "Minas Gerais" else if [state] = "PA" then "Para" else if [state] = "PB" then "Paraiba" else if [state] = "PR" then "Parana" else if [state] = "PE" then "Pernambuco" else if [state] = "PI" then "Piaui" else if [state] = "RJ" then "Rio de Janeiro" else if [state] = "RN" then "Rio Grande do Norte" else if [state] = "RS" then "Rio Grande do Sul" else if [state] = "RO" then "Rondonia" else if [state] = "RR" then "Roraima" else if [state] = "SC" then "Santa Catarina" else if [state] = "SP" then "Sao Paulo" else if [state] = "SE" then "Sergipe" else if [state] = "TO" then "Tocantins" else null),
+				  #"Colunas reordenadas" = Table.ReorderColumns(#"Personalização adicionada 1", {"location_key", "city", "state", "state2", "region_code", "region", "country"})
+				in
+				    #"Colunas reordenadas"
+
+	annotation PBI_ResultType = Table
+

@@ -1,0 +1,41 @@
+table dim_product
+	lineageTag: ec9836b9-aa87-4e9b-9bc1-d6c3896bbc0a
+
+	column product_key
+		dataType: int64
+		formatString: 0
+		lineageTag: b14c2c33-43bc-480d-815c-7510d2880c38
+		summarizeBy: none
+		sourceColumn: product_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column product
+		dataType: string
+		lineageTag: 49a49e51-ba7c-45b1-a9a0-f969a127d44e
+		summarizeBy: none
+		sourceColumn: product
+
+		annotation SummarizationSetBy = Automatic
+
+	column unit
+		dataType: string
+		lineageTag: 6f7db57a-a9fe-4c49-a97f-30f919b5bde6
+		summarizeBy: none
+		sourceColumn: unit
+
+		annotation SummarizationSetBy = Automatic
+
+	partition dim_product = m
+		mode: import
+		source =
+				let
+				    Fonte = DatabricksMultiCloud.Catalogs("dbc-8c6f524f-f86f.cloud.databricks.com", "/sql/1.0/warehouses/6de3517e3222deb1", [Catalog=null, Database=null, QueryTags=null, EnableAutomaticProxyDiscovery=null, Implementation="2.0", Protocol=null]),
+				    anp_fuel_Database = Fonte{[Name="anp_fuel",Kind="Database"]}[Data],
+				    gold_Schema = anp_fuel_Database{[Name="gold",Kind="Schema"]}[Data],
+				    dim_product_Table = gold_Schema{[Name="dim_product",Kind="Table"]}[Data]
+				in
+				    dim_product_Table
+
+	annotation PBI_ResultType = Table
+

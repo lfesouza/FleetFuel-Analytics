@@ -1,0 +1,71 @@
+table fact_price
+	lineageTag: 6c136e55-013f-4c5c-87dc-90e6c6beadea
+
+	column date_key
+		dataType: int64
+		formatString: 0
+		lineageTag: 30f3aad4-6b96-4848-b870-624a0ba590a2
+		summarizeBy: none
+		sourceColumn: date_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column location_key
+		dataType: int64
+		formatString: 0
+		lineageTag: a054f220-5aec-4d13-b215-9d10666e5bd7
+		summarizeBy: none
+		sourceColumn: location_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column product_key
+		dataType: int64
+		formatString: 0
+		lineageTag: 60a8e5ab-8a76-44c8-964d-ecb7636dcf5f
+		summarizeBy: none
+		sourceColumn: product_key
+
+		annotation SummarizationSetBy = Automatic
+
+	column sale_price
+		dataType: double
+		lineageTag: 913916f1-6a0a-46ba-8851-d7f25eed35b8
+		summarizeBy: sum
+		sourceColumn: sale_price
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column purchase_price
+		dataType: double
+		lineageTag: 7d40f201-a616-4a21-b87b-522f20860c1c
+		summarizeBy: sum
+		sourceColumn: purchase_price
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column station_id
+		dataType: string
+		lineageTag: 78b2ed0b-a244-42e9-b128-7d29414d4f3d
+		summarizeBy: none
+		sourceColumn: station_id
+
+		annotation SummarizationSetBy = Automatic
+
+	partition fact_price = m
+		mode: import
+		source =
+				let
+				    Fonte = DatabricksMultiCloud.Catalogs("dbc-8c6f524f-f86f.cloud.databricks.com", "/sql/1.0/warehouses/6de3517e3222deb1", [Catalog=null, Database=null, QueryTags=null, EnableAutomaticProxyDiscovery=null, Implementation="2.0", Protocol=null]),
+				    anp_fuel_Database = Fonte{[Name="anp_fuel",Kind="Database"]}[Data],
+				    gold_Schema = anp_fuel_Database{[Name="gold",Kind="Schema"]}[Data],
+				    fact_price_Table = gold_Schema{[Name="fact_price",Kind="Table"]}[Data]
+				in
+				    fact_price_Table
+
+	annotation PBI_ResultType = Table
+
