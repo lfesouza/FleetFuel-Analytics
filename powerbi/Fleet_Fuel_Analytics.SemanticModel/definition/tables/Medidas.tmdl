@@ -147,6 +147,11 @@ table Medidas
 		formatString: 0.0%;-0.0%;0.0%
 		lineageTag: 11b69685-117a-415a-bbbb-31c6aae17368
 
+	measure 'Selected Products' =
+			
+			CONCATENATEX ( VALUES ( dim_product[product] ), dim_product[product], ", ", dim_product[product] )
+		lineageTag: 1dbec4d5-4ddd-458d-b031-09d0353578c4
+
 	partition Medidas = m
 		mode: import
 		source =

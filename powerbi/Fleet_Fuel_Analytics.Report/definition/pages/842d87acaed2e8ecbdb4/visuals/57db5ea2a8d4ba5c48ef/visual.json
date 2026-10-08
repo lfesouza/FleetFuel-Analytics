@@ -162,11 +162,6 @@
         }
       ]
     },
-    "syncGroup": {
-      "groupName": "product",
-      "fieldChanges": true,
-      "filterChanges": true
-    },
     "drillFilterOtherVisuals": true
   }
 }

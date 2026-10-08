@@ -162,11 +162,6 @@
         }
       ]
     },
-    "syncGroup": {
-      "groupName": "region",
-      "fieldChanges": true,
-      "filterChanges": true
-    },
     "drillFilterOtherVisuals": true
   }
 }
