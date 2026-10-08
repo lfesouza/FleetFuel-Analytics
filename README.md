@@ -4,13 +4,23 @@ End-to-end data pipeline that turns Brazil's public fuel price survey (ANP) into
 
 Built on **Databricks Free Edition** (serverless only), deployed as a **Databricks Asset Bundle**, and following the **medallion architecture** (raw → bronze → silver → gold) in **Unity Catalog**.
 
+![Overview page](images/overview.png)
+
 ## Why
 
-Diesel is one of the largest costs for any truck fleet. ANP publishes weekly prices from thousands of gas stations across Brazil, but only as raw monthly CSVs. This project answers three questions:
+Fuel is one of the largest costs for any fleet: diesel for trucks, and ethanol or gasoline for flex-fuel cars. ANP publishes weekly prices from thousands of gas stations across Brazil, but only as raw monthly CSVs. This project answers three questions:
 
 - What is the average diesel, gasoline and ethanol price today, by state and region?
 - How have prices moved over the last 12 months?
 - In which states is ethanol cheaper to run than gasoline?
+
+## Key findings
+
+From the ANP data up to 30 Sep 2026 (the numbers change with every refresh):
+
+- **DIESEL S10** averages **R$ 7.17/l**, up **17.2%** over the last 12 months.
+- **Acre** is the most expensive state for DIESEL S10, **R$ 0.95** above the national average.
+- Nationally, ethanol costs **65.8%** of the gasoline price, so it pays off on average. It is the better choice in **11 states**, with the widest margins in Mato Grosso, São Paulo and Mato Grosso do Sul.
 
 ## Architecture
 
@@ -99,8 +109,6 @@ The report connects to the Databricks SQL Warehouse in **Import** mode and reads
 
   `ratio = average ETANOL price ÷ average GASOLINA price`
 
-![Overview page](images/overview.png)
-
 ![Trend page](images/trend.png)
 
 ![Fuel Choice page](images/fuel-choice.png)
@@ -129,7 +137,7 @@ The report connects to the Databricks SQL Warehouse in **Import** mode and reads
 | `catalog` | `anp_fuel` | Unity Catalog catalog for all schemas. |
 | `start_year` | `2023` | First ANP survey year to ingest. Ingestion always runs up to the current year. |
 
-4. Open `powerbi/Fleet_Fuel_Analytics.pbip` in Power BI Desktop, point the Databricks data source to your workspace host and SQL Warehouse (*Transform data → Data source settings*), and refresh.
+4. Open `powerbi/Fleet_Fuel_Analytics.pbip` in Power BI Desktop. In *Transform data → Edit parameters*, set `DatabricksHost` (your workspace host, without `https://`) and `HttpPath` (from your SQL Warehouse's *Connection details*), then refresh and sign in when prompted.
 
 ## Project structure
 
@@ -158,7 +166,7 @@ The report connects to the Databricks SQL Warehouse in **Import** mode and reads
 
 ## Tech stack
 
-Databricks (Unity Catalog, Delta Lake, serverless jobs, Asset Bundles) · PySpark · Spark SQL · pytest · Power BI (DAX)
+Databricks (Unity Catalog, Delta Lake, serverless jobs, Asset Bundles) · PySpark · Spark SQL · pytest · Power BI (DAX, Power Query, PBIP/TMDL)
 
 ## Data source
 
