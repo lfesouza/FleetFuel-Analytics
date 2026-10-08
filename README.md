@@ -99,6 +99,12 @@ The report connects to the Databricks SQL Warehouse in **Import** mode and reads
 
   `ratio = average ETANOL price ÷ average GASOLINA price`
 
+![Overview page](images/overview.png)
+
+![Trend page](images/trend.png)
+
+![Fuel Choice page](images/fuel-choice.png)
+
 ## How to run
 
 **Requirements:** a Databricks workspace (Free Edition works) and the [Databricks CLI](https://docs.databricks.com/dev-tools/cli/install.html) authenticated to it.
@@ -129,6 +135,7 @@ The report connects to the Databricks SQL Warehouse in **Import** mode and reads
 
 ```
 ├── databricks.yml            # bundle definition and variables
+├── images/                   # report screenshots
 ├── resources/
 │   └── anp_fuel_job.yml      # job with all tasks
 ├── src/
