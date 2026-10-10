@@ -2,8 +2,13 @@
 # Downloads the ANP monthly fuel price CSVs (diesel and gasoline files) into the raw Volume, from start_year
 # up to the current year. Files land at /Volumes/<catalog>/raw/files/<year>/precos-<group>-<month>.csv;
 # files already present are skipped, so each run only fetches the months ANP published since the last run.
+#
+# ANP only publishes a month after it closes, so the same page's "ultimas-4-semanas" files (same layout,
+# refreshed every week) are also saved, as dated snapshots under raw/files/weekly/. They overlap the
+# monthly files; silver keeps one row per station, product and day.
 
 import datetime
+import filecmp
 import os
 import re
 import shutil
@@ -23,7 +28,9 @@ LISTING_URL = "https://www.gov.br/anp/pt-br/centrais-de-conteudo/dados-abertos/s
 LINK_PATTERN = re.compile(r'href="(https://[^"]*/shpc/dsan/(\d{4})/([^"]+))"')
 # "diesel-gnv" carries DIESEL and DIESEL S10; "gasolina-etanol" carries GASOLINA and ETANOL. Other products are filtered in silver.
 FILE_GROUPS = ["diesel-gnv", "gasolina-etanol"]
+WEEKLY_PATTERN = re.compile(r'href="(https://[^"]*/shpc/qus/ultimas-4-semanas-([^"]+?)\.csv)"')
 VOLUME_DIR = f"/Volumes/{catalog}/raw/files"
+WEEKLY_DIR = f"{VOLUME_DIR}/weekly"
 
 # COMMAND ----------
 
@@ -32,13 +39,35 @@ def fetch(url: str):
     return urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"}), timeout=120)
 
 
-def download(url: str, dest: str) -> None:
-    """Downloads url to local disk first, then copies to dest, so a failed download never leaves a partial CSV."""
+def download_to_temp(url: str) -> str:
     with tempfile.NamedTemporaryFile(suffix=".csv", delete=False) as tmp:
         with fetch(url) as response:
             shutil.copyfileobj(response, tmp, length=1024 * 1024)
-    shutil.copyfile(tmp.name, dest)
-    os.remove(tmp.name)
+    return tmp.name
+
+
+def download(url: str, dest: str) -> None:
+    """Downloads url to local disk first, then copies to dest, so a failed download never leaves a partial CSV."""
+    tmp_path = download_to_temp(url)
+    shutil.copyfile(tmp_path, dest)
+    os.remove(tmp_path)
+
+
+def download_snapshot(url: str, group: str) -> str | None:
+    """Saves the rolling file as weekly/ultimas-4-semanas-<group>-<yyyy-mm-dd>.csv.
+
+    Returns None when ANP has not refreshed it since the last snapshot, so reruns in the same week add nothing.
+    """
+    os.makedirs(WEEKLY_DIR, exist_ok=True)
+    prefix = f"ultimas-4-semanas-{group}-"
+    snapshots = sorted(name for name in os.listdir(WEEKLY_DIR) if name.startswith(prefix))
+    tmp_path = download_to_temp(url)
+    dest = None
+    if not snapshots or not filecmp.cmp(tmp_path, f"{WEEKLY_DIR}/{snapshots[-1]}", shallow=False):
+        dest = f"{WEEKLY_DIR}/{prefix}{datetime.date.today().isoformat()}.csv"
+        shutil.copyfile(tmp_path, dest)
+    os.remove(tmp_path)
+    return dest
 
 
 def parse_month(name: str) -> int:
@@ -69,6 +98,11 @@ missing = sorted(k for k in expected if (k[0], k[2]) <= latest and k not in file
 if missing:
     raise ValueError(f"Missing ANP files (year, group, month): {missing}")
 
+# group -> url of the rolling "last 4 weeks" file
+weekly_files = {group: url for url, group in WEEKLY_PATTERN.findall(html) if group in FILE_GROUPS}
+if set(weekly_files) != set(FILE_GROUPS):
+    raise ValueError(f"Missing ANP last-4-weeks files; found only: {sorted(weekly_files)}")
+
 # COMMAND ----------
 
 downloaded, skipped = [], []
@@ -83,3 +117,9 @@ for (year, group, month), url in sorted(files.items()):
     print(f"downloaded {dest}")
 
 print(f"{len(downloaded)} downloaded, {len(skipped)} already present; latest month on ANP: {latest[0]}-{latest[1]:02d}")
+
+# COMMAND ----------
+
+for group, url in sorted(weekly_files.items()):
+    snapshot = download_snapshot(url, group)
+    print(f"saved {snapshot}" if snapshot else f"last-4-weeks {group}: unchanged since the last snapshot")

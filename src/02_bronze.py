@@ -1,5 +1,5 @@
 # Databricks notebook source
-# Loads the raw ANP CSVs from the Volume into <catalog>.bronze.prices_raw.
+# Loads the raw ANP CSVs from the Volume (monthly files and weekly snapshots) into <catalog>.bronze.prices_raw.
 # All columns are kept as strings; only files not yet in the table are appended (idempotent).
 
 import csv
