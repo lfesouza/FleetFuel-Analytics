@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-10T22:46:39.000Z",
+  "updatedAt": "2026-10-10T23:08:42.000Z",
   "createdAt": "2026-10-10T22:43:55.137Z",
   "id": "pipelinealerts01",
   "name": "pipeline_alerts",
@@ -14,9 +14,9 @@
             {
               "field": "weeks",
               "triggerAtDay": [
-                1
+                0
               ],
-              "triggerAtHour": 8
+              "triggerAtHour": 20
             }
           ]
         }
@@ -28,7 +28,7 @@
         0
       ],
       "id": "ad47e559-fcb8-4db1-b789-0dc9f5e6f6c4",
-      "name": "Every Monday 08:00"
+      "name": "Every Sunday 20:00"
     },
     {
       "parameters": {},
@@ -372,17 +372,6 @@
     }
   ],
   "connections": {
-    "Every Monday 08:00": {
-      "main": [
-        [
-          {
-            "node": "Get last job run",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Run manually": {
       "main": [
         [
@@ -536,6 +525,17 @@
           }
         ]
       ]
+    },
+    "Every Sunday 20:00": {
+      "main": [
+        [
+          {
+            "node": "Get last job run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -551,14 +551,22 @@
       "recurrenceRuleSignatures": [
         null
       ]
+    },
+    "node:Every Sunday 20:00": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
     }
   },
   "meta": null,
   "nodeGroups": [],
   "pinData": {},
-  "versionId": "89fa129e-4fc6-43ce-9c77-fa10afecd962",
-  "activeVersionId": "89fa129e-4fc6-43ce-9c77-fa10afecd962",
-  "versionCounter": 1,
+  "versionId": "7c459cec-019c-4809-b1bb-393d9fdec5fb",
+  "activeVersionId": "7c459cec-019c-4809-b1bb-393d9fdec5fb",
+  "versionCounter": 2,
   "triggerCount": 1,
   "sourceWorkflowId": null,
   "tags": [],
