@@ -18,11 +18,11 @@ Fuel is one of the largest costs for any fleet: diesel for trucks, and ethanol o
 
 ## Key findings
 
-From the ANP data up to 9 Oct 2026, over the latest month of surveys (the numbers change with every refresh):
+From the ANP data up to 9 Oct 2026 (the numbers change with every refresh):
 
-- **DIESEL S10** averages **R$ 7.28/l**, up **19.2%** over the last 12 months.
-- **Acre** is the most expensive state for DIESEL S10, **R$ 0.83** above the national average.
-- Nationally, ethanol costs **66.2%** of the gasoline price, so it pays off on average. It is the better choice in **10 states**, with the widest margins in Mato Grosso, São Paulo and Mato Grosso do Sul.
+- **DIESEL S10** averages **R$ 7.37/l**, up **20.6%** over the last 12 months.
+- **Acre** is the most expensive state for DIESEL S10, **R$ 0.72** above the national average.
+- Nationally, ethanol costs **66.7%** of the gasoline price, so it pays off on average. It is the better choice in **10 states**, with the widest margins in Mato Grosso, São Paulo and Mato Grosso do Sul.
 
 ## Architecture
 
@@ -147,25 +147,7 @@ The serverless warehouse may be stopped when n8n calls it, so every query is sub
 
 A digest looks like this:
 
-```text
-⛽ FleetFuel Weekly — week of 05/10/2026
-
-National average (vs last week)
-• Diesel S10  R$7.37  ▼ 0.1%
-• Diesel      R$7.05  ▲ 0.7%
-• Gasoline    R$6.57  ▼ 0.1%
-• Ethanol     R$4.37  ▬ 0.0%
-
-Biggest Diesel S10 increases
-1. PA  +1.3%   2. MS  +1.2%   3. RR  +1.0%
-
-Ethanol vs gasoline
-Ethanol pays in 10 of 27 states (ratio 66.5%)
-Flipped to ethanol this week: none
-Flipped to gasoline this week: none
-
-⚠️ Spikes above 5%: none
-```
+<img src="docs/telegram_digest.png" alt="Weekly digest in Telegram" width="420">
 
 The digest compares the latest week with the week before, while the report cards use the latest month, so the two can show different averages for the same product.
 
@@ -200,7 +182,7 @@ The digest compares the latest week with the week before, while the report cards
 | `spike_threshold` | `5` | Week-over-week state price increase (%) flagged as a spike in the digest. |
 | `min_stations` | `10` | Minimum stations surveyed in a state and week for it to enter the digest rankings. |
 
-4. Open `powerbi/Fleet_Fuel_Analytics.pbip` in Power BI Desktop. In *Transform data → Edit parameters*, set `DatabricksHost` (your workspace host, without `https://`) and `HttpPath` (from your SQL Warehouse's *Connection details*), then refresh and sign in when prompted.
+4. Open `powerbi/Fleet_Fuel_Analytics.pbip` in Power BI Desktop. In *Transform data*, open the *Source* step of each query (`dim_date`, `dim_location`, `dim_product`, `fact_price`) and replace the workspace host (without `https://`) and the HTTP path (from your SQL Warehouse's *Connection details*), then refresh and sign in when prompted.
 
 ### Weekly alerts
 
@@ -234,6 +216,7 @@ The digest compares the latest week with the week before, while the report cards
 │   ├── .env.example          # settings read by n8n (copy to .env)
 │   └── workflows/            # n8n workflows exported as JSON, without credentials
 ├── databricks.yml            # bundle definition and variables
+├── docs/                     # Telegram digest screenshot
 ├── images/                   # report screenshots
 ├── resources/
 │   └── anp_fuel_job.yml      # job with all tasks

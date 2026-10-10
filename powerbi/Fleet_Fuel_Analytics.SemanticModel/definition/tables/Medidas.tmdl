@@ -150,7 +150,12 @@ table Medidas
 	measure 'Selected Products' =
 			
 			CONCATENATEX ( VALUES ( dim_product[product] ), dim_product[product], ", ", dim_product[product] )
-		lineageTag: 1dbec4d5-4ddd-458d-b031-09d0353578c4
+		lineageTag: a2022f9c-f2b1-4f48-94fa-812da0c57126
+
+	measure 'Selected Regions' =
+			
+			CONCATENATEX ( VALUES ( dim_location[region] ), dim_location[region], ", ", dim_location[region] )
+		lineageTag: 63f868a2-8f35-4195-bfb4-8472fbaaf79c
 
 	partition Medidas = m
 		mode: import
