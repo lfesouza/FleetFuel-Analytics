@@ -1,0 +1,16 @@
+/// Databricks workspace host
+expression DatabricksHost = "dbc-8c6f524f-f86f.cloud.databricks.com" meta [IsParameterQuery = true, IsParameterQueryRequired = true, Type = type text]
+	lineageTag: 1a8d4943-561e-4d64-a7c2-789f63efb0f0
+
+	annotation PBI_ResultType = Text
+
+/// SQL Warehouse HTTP path
+expression HttpPath =
+		let
+		    Source = "/sql/1.0/warehouses/6de3517e3222deb1" meta [IsParameterQuery = true, IsParameterQueryRequired = true, Type = type text]
+		in
+		    Source
+	lineageTag: 2a3c8296-de8c-46cf-a95d-5f39cd589680
+
+	annotation PBI_ResultType = Text
+

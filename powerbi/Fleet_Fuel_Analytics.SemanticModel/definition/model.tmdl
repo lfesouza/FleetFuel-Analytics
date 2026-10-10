@@ -9,7 +9,7 @@ model Model
 
 annotation __PBI_TimeIntelligenceEnabled = 0
 
-annotation PBI_QueryOrder = ["dim_date","dim_location","dim_product","fact_price","Medidas"]
+annotation PBI_QueryOrder = ["dim_date","dim_location","dim_product","fact_price","Medidas","DatabricksHost","HttpPath"]
 
 annotation PBI_ProTooling = ["DevMode"]
 

@@ -104,7 +104,7 @@ table dim_location
 		mode: import
 		source =
 				let
-				    Fonte = DatabricksMultiCloud.Catalogs("dbc-8c6f524f-f86f.cloud.databricks.com", "/sql/1.0/warehouses/6de3517e3222deb1", [Catalog=null, Database=null, QueryTags=null, EnableAutomaticProxyDiscovery=null, Implementation="2.0", Protocol=null]),
+				    Fonte = DatabricksMultiCloud.Catalogs(DatabricksHost, HttpPath, [Catalog=null, Database=null, QueryTags=null, EnableAutomaticProxyDiscovery=null, Implementation="2.0", Protocol=null]),
 				    anp_fuel_Database = Fonte{[Name="anp_fuel",Kind="Database"]}[Data],
 				    gold_Schema = anp_fuel_Database{[Name="gold",Kind="Schema"]}[Data],
 				    dim_location_Table = gold_Schema{[Name="dim_location",Kind="Table"]}[Data],

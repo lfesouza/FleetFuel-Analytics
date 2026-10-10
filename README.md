@@ -182,7 +182,7 @@ The digest compares the latest week with the week before, while the report cards
 | `spike_threshold` | `5` | Week-over-week state price increase (%) flagged as a spike in the digest. |
 | `min_stations` | `10` | Minimum stations surveyed in a state and week for it to enter the digest rankings. |
 
-4. Open `powerbi/Fleet_Fuel_Analytics.pbip` in Power BI Desktop. In *Transform data*, open the *Source* step of each query (`dim_date`, `dim_location`, `dim_product`, `fact_price`) and replace the workspace host (without `https://`) and the HTTP path (from your SQL Warehouse's *Connection details*), then refresh and sign in when prompted.
+4. Open `powerbi/Fleet_Fuel_Analytics.pbip` in Power BI Desktop. In *Transform data → Edit parameters*, set `DatabricksHost` (your workspace host, without `https://`) and `HttpPath` (from your SQL Warehouse's *Connection details*), then refresh and sign in when prompted.
 
 ### Weekly alerts
 
