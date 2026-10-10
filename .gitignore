@@ -22,3 +22,7 @@ Thumbs.db
 
 # Private planning docs
 PRD.md
+PRD-phase2.md
+
+# n8n secrets
+automation/.env

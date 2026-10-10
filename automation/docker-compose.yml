@@ -1,0 +1,28 @@
+# Self-hosted n8n for the FleetFuel weekly digest and pipeline alerts.
+# Run from this folder: `docker compose up -d`, then open http://localhost:5678.
+services:
+  n8n:
+    # Pinned so exported workflows stay consistent; bump deliberately.
+    image: docker.n8n.io/n8nio/n8n:2.42.5
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    # Non-secret settings (host, IDs, thresholds) read by the workflows via $env.
+    # Tokens are stored as n8n Credentials, not passed to the nodes from here.
+    env_file:
+      - .env
+    environment:
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      TZ: America/Sao_Paulo
+      # Keeps saved credentials readable if the volume is ever recreated.
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?set N8N_ENCRYPTION_KEY in .env}
+      # Lets expressions read $env.DATABRICKS_HOST etc.
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      N8N_RUNNERS_ENABLED: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  n8n_data:

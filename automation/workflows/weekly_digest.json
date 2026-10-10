@@ -1,0 +1,490 @@
+{
+  "updatedAt": "2026-10-10T23:08:46.000Z",
+  "createdAt": "2026-10-10T22:37:06.135Z",
+  "id": "weeklydigest0001",
+  "name": "weekly_digest",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                0
+              ],
+              "triggerAtHour": 20
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "99c8f9b4-c577-4eb4-b013-75865d9c5ff9",
+      "name": "Every Sunday 20:00"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "84a8b38d-6b8b-4771-98cf-8517bf5d6adc",
+      "name": "Run manually"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DATABRICKS_HOST }}/api/2.1/jobs/runs/list",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "job_id",
+              "value": "={{ $env.DATABRICKS_JOB_ID }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        0
+      ],
+      "id": "f0d2e7fa-2eb9-474a-a504-bfe4405c7b3d",
+      "name": "Get last job run",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bYmt1I6Rnosdq1Of",
+          "name": "Databricks PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "218ef1aa-6d46-4b37-ab59-ba621dc42159",
+              "leftValue": "={{ $json.runs?.[0]?.state?.result_state === 'SUCCESS' && DateTime.fromMillis($json.runs[0].start_time).setZone('America/Sao_Paulo').hasSame($now.setZone('America/Sao_Paulo'), 'day') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "722bcfa6-39b0-4a22-af68-067f06111858",
+      "name": "Ran today and succeeded?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DATABRICKS_HOST }}/api/2.0/sql/statements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  warehouse_id: $env.DATABRICKS_WAREHOUSE_ID,\n  statement: \"SELECT (SELECT coalesce(l.max_collection_date > max(p.max_collection_date), true) FROM (SELECT run_at, max_collection_date FROM anp_fuel.gold.ops_run_log ORDER BY run_at DESC LIMIT 1) l LEFT JOIN anp_fuel.gold.ops_run_log p ON CAST(p.run_at AS DATE) < CAST(l.run_at AS DATE) GROUP BY l.max_collection_date) AS has_new_data, (SELECT to_json(collect_list(named_struct('product', product, 'week_start', week_start, 'avg_price', avg_price, 'prev_avg_price', prev_avg_price, 'wow_change_pct', wow_change_pct))) FROM anp_fuel.gold.vw_weekly_national) AS national, (SELECT to_json(collect_list(named_struct('state', state, 'product', product, 'wow_change_pct', wow_change_pct, 'in_ranking', in_ranking, 'is_spike', is_spike))) FROM anp_fuel.gold.vw_weekly_state_changes) AS state_changes, (SELECT to_json(collect_list(named_struct('state', state, 'ratio', ratio, 'ethanol_pays', ethanol_pays, 'flipped_to_ethanol', flipped_to_ethanol, 'flipped_to_gasoline', flipped_to_gasoline))) FROM anp_fuel.gold.vw_fuel_ratio_current) AS fuel_ratio, (SELECT to_json(named_struct('ratio_threshold', ratio_threshold, 'spike_threshold_pct', spike_threshold_pct, 'min_stations', min_stations)) FROM anp_fuel.gold.digest_config) AS config\",\n  wait_timeout: '30s',\n  on_wait_timeout: 'CONTINUE'\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        660,
+        0
+      ],
+      "id": "ea00fecb-f14f-43ef-ad90-721186eb92dd",
+      "name": "Submit statement",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bYmt1I6Rnosdq1Of",
+          "name": "Databricks PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status.state }}",
+                    "rightValue": "SUCCEEDED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b810072b-184b-4e5a-b8ac-68b987d774f9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "succeeded"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3b658410-2180-4073-a7eb-5dd135577d86",
+                    "leftValue": "={{ [\"PENDING\",\"RUNNING\"].includes($json.status.state) && $runIndex < 24 }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "waiting"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        0
+      ],
+      "id": "d24af4d6-9396-49e0-b440-290577b8e331",
+      "name": "Check state"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "3b62bddf-81e4-40cb-bca9-e18abb7c5d70",
+      "name": "Wait",
+      "webhookId": "d02e8804-4d2b-446b-8823-fe09baa6ae48"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DATABRICKS_HOST }}/api/2.0/sql/statements/{{ $json.statement_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        120
+      ],
+      "id": "d84e848f-5d7f-4215-a5e5-cd92e948d54e",
+      "name": "Poll statement",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bYmt1I6Rnosdq1Of",
+          "name": "Databricks PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "=Statement {{ $json.statement_id }} ended as {{ $json.status.state }}: {{ $json.status.error?.message ?? 'timed out after 2 minutes' }}"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        320
+      ],
+      "id": "ccc47ff4-013b-44c8-ae2f-b42b77dcfc83",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Builds the weekly digest text from the single-row result of the \"Submit statement\" query.\n// Each column is a JSON string: has_new_data, national, state_changes, fuel_ratio and config.\nconst res = $input.first().json;\nconst names = res.manifest.schema.columns.map(col => col.name);\nconst row = res.result.data_array[0];\nconst data = Object.fromEntries(names.map((name, i) => [name, JSON.parse(row[i])]));\n\nconst labels = { 'DIESEL S10': 'Diesel S10', 'DIESEL': 'Diesel', 'GASOLINA': 'Gasoline', 'ETANOL': 'Ethanol' };\nconst order = Object.keys(labels);\n\n// Round on whole hundredths first so 1.65 shows as 1.7, not 1.6.\nconst pct = value => (Math.round(Math.round(Math.abs(value) * 100) / 10) / 10).toFixed(1) + '%';\n// Same idea for prices kept with three decimals: 7.045 shows as 7.05.\nconst brl = value => 'R$' + (Math.round(Math.round(value * 1000) / 10) / 100).toFixed(2);\nconst signed = value => (value >= 0 ? '+' : '−') + pct(value);\nconst arrow = value => (value > 0 ? '▲' : value < 0 ? '▼' : '▬');\nconst list = items => (items.length ? items.join(', ') : 'none');\n\nconst national = [...data.national].sort((a, b) => order.indexOf(a.product) - order.indexOf(b.product));\nconst [year, month, day] = national[0].week_start.split('-');\n\nconst nationalLines = national.map(p =>\n  `• ${labels[p.product].padEnd(11)} ${brl(p.avg_price)}  ${arrow(p.wow_change_pct)} ${pct(p.wow_change_pct)}`\n);\n\n// Top 3 Diesel S10 increases among states with enough stations in both weeks.\nconst ranked = data.state_changes.filter(s => s.in_ranking);\nconst topIncreases = ranked\n  .filter(s => s.product === 'DIESEL S10' && s.wow_change_pct > 0)\n  .sort((a, b) => b.wow_change_pct - a.wow_change_pct)\n  .slice(0, 3)\n  .map((s, i) => `${i + 1}. ${s.state}  ${signed(s.wow_change_pct)}`);\n\nconst price = product => national.find(p => p.product === product).avg_price;\nconst nationalRatio = (price('ETANOL') / price('GASOLINA') * 100).toFixed(1);\nconst states = data.fuel_ratio;\nconst flippedTo = flag => states.filter(s => s[flag]).map(s => s.state).sort();\n\nconst spikes = data.state_changes\n  .filter(s => s.is_spike)\n  .sort((a, b) => b.wow_change_pct - a.wow_change_pct)\n  .map(s => `${s.state} ${labels[s.product]} ${signed(s.wow_change_pct)}`);\n\nconst lines = [\n  `⛽ FleetFuel Weekly — week of ${day}/${month}/${year}`,\n  '',\n  'National average (vs last week)',\n  ...nationalLines,\n  '',\n  'Biggest Diesel S10 increases',\n  topIncreases.length ? topIncreases.join('   ') : 'none',\n  '',\n  'Ethanol vs gasoline',\n  `Ethanol pays in ${states.filter(s => s.ethanol_pays).length} of ${states.length} states (ratio ${nationalRatio}%)`,\n  `Flipped to ethanol this week: ${list(flippedTo('flipped_to_ethanol'))}`,\n  `Flipped to gasoline this week: ${list(flippedTo('flipped_to_gasoline'))}`,\n  '',\n  `⚠️ Spikes above ${Number(data.config.spike_threshold_pct)}%: ${list(spikes)}`,\n];\n\nreturn [{ json: { text: lines.join('\\n') } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        -120
+      ],
+      "id": "4c2a6a70-c029-4500-8c60-93428f7df4ef",
+      "name": "Build message"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1540,
+        -120
+      ],
+      "id": "72a4ef84-a064-4a18-b22f-fe5922215364",
+      "name": "Send digest",
+      "credentials": {
+        "telegramApi": {
+          "id": "EA49JclWkbHVSd0i",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0018eef1-ae0d-45be-9511-0c75e633c53c",
+              "leftValue": "={{ $json.result.data_array[0][0] !== 'false' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        -120
+      ],
+      "id": "da2200f7-3777-40d0-a08b-2fbaee2ba8cf",
+      "name": "New ANP data?"
+    }
+  ],
+  "connections": {
+    "Get last job run": {
+      "main": [
+        [
+          {
+            "node": "Ran today and succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ran today and succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Submit statement",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Submit statement": {
+      "main": [
+        [
+          {
+            "node": "Check state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check state": {
+      "main": [
+        [
+          {
+            "node": "New ANP data?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Poll statement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll statement": {
+      "main": [
+        [
+          {
+            "node": "Check state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build message": {
+      "main": [
+        [
+          {
+            "node": "Send digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "Get last job run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New ANP data?": {
+      "main": [
+        [
+          {
+            "node": "Build message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Every Sunday 20:00": {
+      "main": [
+        [
+          {
+            "node": "Get last job run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "errorWorkflow": "pipelinealerts01"
+  },
+  "staticData": {
+    "node:Every Monday 08:00": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "node:Every Sunday 20:00": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "90086ca8-2ac4-4890-8340-32f922b08a08",
+  "activeVersionId": "90086ca8-2ac4-4890-8340-32f922b08a08",
+  "versionCounter": 4,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

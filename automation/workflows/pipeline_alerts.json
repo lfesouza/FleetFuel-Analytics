@@ -1,0 +1,577 @@
+{
+  "updatedAt": "2026-10-10T23:08:42.000Z",
+  "createdAt": "2026-10-10T22:43:55.137Z",
+  "id": "pipelinealerts01",
+  "name": "pipeline_alerts",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                0
+              ],
+              "triggerAtHour": 20
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ad47e559-fcb8-4db1-b789-0dc9f5e6f6c4",
+      "name": "Every Sunday 20:00"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "1861ca11-fea8-470d-bb78-051937777ff8",
+      "name": "Run manually"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DATABRICKS_HOST }}/api/2.1/jobs/runs/list",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "job_id",
+              "value": "={{ $env.DATABRICKS_JOB_ID }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        220,
+        0
+      ],
+      "id": "f44cbb87-3e1c-4a57-a587-21fcb96f31e0",
+      "name": "Get last job run",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bYmt1I6Rnosdq1Of",
+          "name": "Databricks PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0ee0a41a-f3df-4789-821e-15b2683ed3b2",
+              "leftValue": "={{ $json.runs?.[0]?.state?.result_state === 'SUCCESS' && DateTime.fromMillis($json.runs[0].start_time).setZone('America/Sao_Paulo').hasSame($now.setZone('America/Sao_Paulo'), 'day') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "id": "bded6d5f-33b6-47bb-ad8f-b3cbcb76fa63",
+      "name": "Ran today and succeeded?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// The last run of the pipeline is not a success from today: report its state and link to it.\nconst run = $input.first().json.runs?.[0];\nconst escape = text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nconst lines = ['🔴 FleetFuel pipeline failed'];\nif (!run) {\n  lines.push('The job has no runs yet.');\n} else {\n  const started = DateTime.fromMillis(run.start_time).setZone('America/Sao_Paulo');\n  const state = run.state?.result_state ?? run.state?.life_cycle_state ?? 'UNKNOWN';\n  const ranToday = started.hasSame($now.setZone('America/Sao_Paulo'), 'day');\n  lines.push(ranToday ? `The run from today ended as ${state}.` : `No run today. Last run: ${state}.`);\n  lines.push(`Started: ${started.toFormat('dd/MM/yyyy HH:mm')}`);\n  if (run.state?.state_message) lines.push(escape(run.state.state_message));\n  lines.push(escape(run.run_page_url));\n}\n\nreturn [{ json: { text: lines.join('\\n') } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        260
+      ],
+      "id": "12d707ef-327d-4d3d-afc8-782e141b6d73",
+      "name": "Build failure alert"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DATABRICKS_HOST }}/api/2.0/sql/statements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  warehouse_id: $env.DATABRICKS_WAREHOUSE_ID,\n  statement: \"SELECT coalesce(l.max_collection_date > max(p.max_collection_date), true) AS has_new_data, date_format(l.max_collection_date, 'dd/MM/yyyy') AS max_collection_date FROM (SELECT run_at, max_collection_date FROM anp_fuel.gold.ops_run_log ORDER BY run_at DESC LIMIT 1) l LEFT JOIN anp_fuel.gold.ops_run_log p ON CAST(p.run_at AS DATE) < CAST(l.run_at AS DATE) GROUP BY l.max_collection_date\",\n  wait_timeout: '30s',\n  on_wait_timeout: 'CONTINUE'\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        660,
+        0
+      ],
+      "id": "dfdd54b4-676a-4459-9913-15c86a7ca30d",
+      "name": "Query run log",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bYmt1I6Rnosdq1Of",
+          "name": "Databricks PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status.state }}",
+                    "rightValue": "SUCCEEDED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b810072b-184b-4e5a-b8ac-68b987d774f9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "succeeded"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3b658410-2180-4073-a7eb-5dd135577d86",
+                    "leftValue": "={{ [\"PENDING\",\"RUNNING\"].includes($json.status.state) && $runIndex < 24 }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "waiting"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        880,
+        0
+      ],
+      "id": "de3856be-cf14-4db2-97a0-47c14080ea2c",
+      "name": "Check state"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        120
+      ],
+      "id": "24898ef1-6eb2-4546-ba49-f2a69eb5c03a",
+      "name": "Wait",
+      "webhookId": "b5001cba-85d6-421e-82a4-bb54d19a906a"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DATABRICKS_HOST }}/api/2.0/sql/statements/{{ $json.statement_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1320,
+        120
+      ],
+      "id": "e90f090e-62c8-457c-a93c-6bab6215272d",
+      "name": "Poll statement",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bYmt1I6Rnosdq1Of",
+          "name": "Databricks PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "=Statement {{ $json.statement_id }} ended as {{ $json.status.state }}: {{ $json.status.error?.message ?? 'timed out after 2 minutes' }}"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        320
+      ],
+      "id": "795b057d-dbf0-441e-8ac0-10e6d4cf324e",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6b013bdb-6916-4036-aa30-1e0ff54190c7",
+              "leftValue": "={{ $json.result?.data_array?.[0]?.[0] === 'false' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        -120
+      ],
+      "id": "da145d94-9777-4b95-85c6-35a5cc55623d",
+      "name": "No new data?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "405658c3-e5db-4b08-ae49-2faeab4df791",
+              "name": "text",
+              "value": "=🟡 No new ANP data this week\nLatest collection date: {{ $json.result.data_array[0][1] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1320,
+        -120
+      ],
+      "id": "7f6e81d8-bb3e-4341-96e1-d663a3d6c242",
+      "name": "Build no-data alert"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        520
+      ],
+      "id": "f67f28fc-39a2-44c2-8ff5-4c7c2cee0585",
+      "name": "On workflow error"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Runs when a workflow that names this one as its error workflow fails.\nconst { workflow, execution } = $input.first().json;\nconst escape = text => String(text).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n\nconst lines = [\n  '🔴 n8n workflow error',\n  `Workflow: ${escape(workflow?.name ?? 'unknown')}`,\n  `Node: ${escape(execution?.lastNodeExecuted ?? 'unknown')}`,\n  `Error: ${escape(execution?.error?.message ?? 'unknown')}`,\n];\n\nreturn [{ json: { text: lines.join('\\n') } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        520
+      ],
+      "id": "b11d94d6-cdc9-471f-899d-4d022e60424e",
+      "name": "Build error alert"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1600,
+        200
+      ],
+      "id": "9f34b67c-1e63-418e-a08c-6c3539183516",
+      "name": "Send alert",
+      "credentials": {
+        "telegramApi": {
+          "id": "EA49JclWkbHVSd0i",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Run manually": {
+      "main": [
+        [
+          {
+            "node": "Get last job run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get last job run": {
+      "main": [
+        [
+          {
+            "node": "Ran today and succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ran today and succeeded?": {
+      "main": [
+        [
+          {
+            "node": "Query run log",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build failure alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query run log": {
+      "main": [
+        [
+          {
+            "node": "Check state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check state": {
+      "main": [
+        [
+          {
+            "node": "No new data?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Poll statement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll statement": {
+      "main": [
+        [
+          {
+            "node": "Check state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No new data?": {
+      "main": [
+        [
+          {
+            "node": "Build no-data alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Build no-data alert": {
+      "main": [
+        [
+          {
+            "node": "Send alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build failure alert": {
+      "main": [
+        [
+          {
+            "node": "Send alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On workflow error": {
+      "main": [
+        [
+          {
+            "node": "Build error alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build error alert": {
+      "main": [
+        [
+          {
+            "node": "Send alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Sunday 20:00": {
+      "main": [
+        [
+          {
+            "node": "Get last job run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "errorWorkflow": "pipelinealerts01"
+  },
+  "staticData": {
+    "node:Every Monday 08:00": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    },
+    "node:Every Sunday 20:00": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "7c459cec-019c-4809-b1bb-393d9fdec5fb",
+  "activeVersionId": "7c459cec-019c-4809-b1bb-393d9fdec5fb",
+  "versionCounter": 2,
+  "triggerCount": 1,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

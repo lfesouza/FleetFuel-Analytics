@@ -12,6 +12,15 @@ variables:
   start_year:
     description: First ANP survey year to ingest; ingestion always runs up to the current year.
     default: "2023"
+  ratio_threshold:
+    description: Ethanol pays off when its price divided by the gasoline price is below this ratio.
+    default: "0.70"
+  spike_threshold:
+    description: Week-over-week state price increase (%) flagged as a spike in the weekly digest.
+    default: "5"
+  min_stations:
+    description: Minimum stations surveyed in a state and week for it to enter the digest rankings.
+    default: "10"
 
 targets:
   dev:
