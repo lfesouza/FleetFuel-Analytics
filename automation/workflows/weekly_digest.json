@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-10-10T22:37:06.135Z",
+  "updatedAt": "2026-10-10T22:47:54.000Z",
   "createdAt": "2026-10-10T22:37:06.135Z",
   "id": "weeklydigest0001",
   "name": "weekly_digest",
   "description": null,
-  "active": false,
+  "active": true,
   "isArchived": false,
   "nodes": [
     {
@@ -118,7 +118,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\n  warehouse_id: $env.DATABRICKS_WAREHOUSE_ID,\n  statement: \"SELECT (SELECT to_json(collect_list(named_struct('product', product, 'week_start', week_start, 'avg_price', avg_price, 'prev_avg_price', prev_avg_price, 'wow_change_pct', wow_change_pct))) FROM anp_fuel.gold.vw_weekly_national) AS national, (SELECT to_json(collect_list(named_struct('state', state, 'product', product, 'wow_change_pct', wow_change_pct, 'in_ranking', in_ranking, 'is_spike', is_spike))) FROM anp_fuel.gold.vw_weekly_state_changes) AS state_changes, (SELECT to_json(collect_list(named_struct('state', state, 'ratio', ratio, 'ethanol_pays', ethanol_pays, 'flipped_to_ethanol', flipped_to_ethanol, 'flipped_to_gasoline', flipped_to_gasoline))) FROM anp_fuel.gold.vw_fuel_ratio_current) AS fuel_ratio, (SELECT to_json(named_struct('ratio_threshold', ratio_threshold, 'spike_threshold_pct', spike_threshold_pct, 'min_stations', min_stations)) FROM anp_fuel.gold.digest_config) AS config\",\n  wait_timeout: '30s',\n  on_wait_timeout: 'CONTINUE'\n}) }}",
+        "jsonBody": "={{ JSON.stringify({\n  warehouse_id: $env.DATABRICKS_WAREHOUSE_ID,\n  statement: \"SELECT (SELECT coalesce(l.max_collection_date > max(p.max_collection_date), true) FROM (SELECT run_at, max_collection_date FROM anp_fuel.gold.ops_run_log ORDER BY run_at DESC LIMIT 1) l LEFT JOIN anp_fuel.gold.ops_run_log p ON CAST(p.run_at AS DATE) < CAST(l.run_at AS DATE) GROUP BY l.max_collection_date) AS has_new_data, (SELECT to_json(collect_list(named_struct('product', product, 'week_start', week_start, 'avg_price', avg_price, 'prev_avg_price', prev_avg_price, 'wow_change_pct', wow_change_pct))) FROM anp_fuel.gold.vw_weekly_national) AS national, (SELECT to_json(collect_list(named_struct('state', state, 'product', product, 'wow_change_pct', wow_change_pct, 'in_ranking', in_ranking, 'is_spike', is_spike))) FROM anp_fuel.gold.vw_weekly_state_changes) AS state_changes, (SELECT to_json(collect_list(named_struct('state', state, 'ratio', ratio, 'ethanol_pays', ethanol_pays, 'flipped_to_ethanol', flipped_to_ethanol, 'flipped_to_gasoline', flipped_to_gasoline))) FROM anp_fuel.gold.vw_fuel_ratio_current) AS fuel_ratio, (SELECT to_json(named_struct('ratio_threshold', ratio_threshold, 'spike_threshold_pct', spike_threshold_pct, 'min_stations', min_stations)) FROM anp_fuel.gold.digest_config) AS config\",\n  wait_timeout: '30s',\n  on_wait_timeout: 'CONTINUE'\n}) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -253,12 +253,12 @@
     },
     {
       "parameters": {
-        "jsCode": "// Builds the weekly digest text from the single-row result of the \"Submit statement\" query.\n// Each column is a JSON string: national, state_changes, fuel_ratio and config.\nconst res = $input.first().json;\nconst names = res.manifest.schema.columns.map(col => col.name);\nconst row = res.result.data_array[0];\nconst data = Object.fromEntries(names.map((name, i) => [name, JSON.parse(row[i])]));\n\nconst labels = { 'DIESEL S10': 'Diesel S10', 'DIESEL': 'Diesel', 'GASOLINA': 'Gasoline', 'ETANOL': 'Ethanol' };\nconst order = Object.keys(labels);\n\n// Round on whole hundredths first so 1.65 shows as 1.7, not 1.6.\nconst pct = value => (Math.round(Math.round(Math.abs(value) * 100) / 10) / 10).toFixed(1) + '%';\nconst signed = value => (value >= 0 ? '+' : '−') + pct(value);\nconst arrow = value => (value > 0 ? '▲' : value < 0 ? '▼' : '▬');\nconst list = items => (items.length ? items.join(', ') : 'none');\n\nconst national = [...data.national].sort((a, b) => order.indexOf(a.product) - order.indexOf(b.product));\nconst [year, month, day] = national[0].week_start.split('-');\n\nconst nationalLines = national.map(p =>\n  `• ${labels[p.product].padEnd(11)} R$${p.avg_price.toFixed(2)}  ${arrow(p.wow_change_pct)} ${pct(p.wow_change_pct)}`\n);\n\n// Top 3 Diesel S10 increases among states with enough stations in both weeks.\nconst ranked = data.state_changes.filter(s => s.in_ranking);\nconst topIncreases = ranked\n  .filter(s => s.product === 'DIESEL S10' && s.wow_change_pct > 0)\n  .sort((a, b) => b.wow_change_pct - a.wow_change_pct)\n  .slice(0, 3)\n  .map((s, i) => `${i + 1}. ${s.state}  ${signed(s.wow_change_pct)}`);\n\nconst price = product => national.find(p => p.product === product).avg_price;\nconst nationalRatio = (price('ETANOL') / price('GASOLINA') * 100).toFixed(1);\nconst states = data.fuel_ratio;\nconst flippedTo = flag => states.filter(s => s[flag]).map(s => s.state).sort();\n\nconst spikes = data.state_changes\n  .filter(s => s.is_spike)\n  .sort((a, b) => b.wow_change_pct - a.wow_change_pct)\n  .map(s => `${s.state} ${labels[s.product]} ${signed(s.wow_change_pct)}`);\n\nconst lines = [\n  `⛽ FleetFuel Weekly — week of ${day}/${month}/${year}`,\n  '',\n  'National average (vs last week)',\n  ...nationalLines,\n  '',\n  'Biggest Diesel S10 increases',\n  topIncreases.length ? topIncreases.join('   ') : 'none',\n  '',\n  'Ethanol vs gasoline',\n  `Ethanol pays in ${states.filter(s => s.ethanol_pays).length} of ${states.length} states (ratio ${nationalRatio}%)`,\n  `Flipped to ethanol this week: ${list(flippedTo('flipped_to_ethanol'))}`,\n  `Flipped to gasoline this week: ${list(flippedTo('flipped_to_gasoline'))}`,\n  '',\n  `⚠️ Spikes above ${Number(data.config.spike_threshold_pct)}%: ${list(spikes)}`,\n];\n\nreturn [{ json: { text: lines.join('\\n') } }];\n"
+        "jsCode": "// Builds the weekly digest text from the single-row result of the \"Submit statement\" query.\n// Each column is a JSON string: has_new_data, national, state_changes, fuel_ratio and config.\nconst res = $input.first().json;\nconst names = res.manifest.schema.columns.map(col => col.name);\nconst row = res.result.data_array[0];\nconst data = Object.fromEntries(names.map((name, i) => [name, JSON.parse(row[i])]));\n\nconst labels = { 'DIESEL S10': 'Diesel S10', 'DIESEL': 'Diesel', 'GASOLINA': 'Gasoline', 'ETANOL': 'Ethanol' };\nconst order = Object.keys(labels);\n\n// Round on whole hundredths first so 1.65 shows as 1.7, not 1.6.\nconst pct = value => (Math.round(Math.round(Math.abs(value) * 100) / 10) / 10).toFixed(1) + '%';\nconst signed = value => (value >= 0 ? '+' : '−') + pct(value);\nconst arrow = value => (value > 0 ? '▲' : value < 0 ? '▼' : '▬');\nconst list = items => (items.length ? items.join(', ') : 'none');\n\nconst national = [...data.national].sort((a, b) => order.indexOf(a.product) - order.indexOf(b.product));\nconst [year, month, day] = national[0].week_start.split('-');\n\nconst nationalLines = national.map(p =>\n  `• ${labels[p.product].padEnd(11)} R$${p.avg_price.toFixed(2)}  ${arrow(p.wow_change_pct)} ${pct(p.wow_change_pct)}`\n);\n\n// Top 3 Diesel S10 increases among states with enough stations in both weeks.\nconst ranked = data.state_changes.filter(s => s.in_ranking);\nconst topIncreases = ranked\n  .filter(s => s.product === 'DIESEL S10' && s.wow_change_pct > 0)\n  .sort((a, b) => b.wow_change_pct - a.wow_change_pct)\n  .slice(0, 3)\n  .map((s, i) => `${i + 1}. ${s.state}  ${signed(s.wow_change_pct)}`);\n\nconst price = product => national.find(p => p.product === product).avg_price;\nconst nationalRatio = (price('ETANOL') / price('GASOLINA') * 100).toFixed(1);\nconst states = data.fuel_ratio;\nconst flippedTo = flag => states.filter(s => s[flag]).map(s => s.state).sort();\n\nconst spikes = data.state_changes\n  .filter(s => s.is_spike)\n  .sort((a, b) => b.wow_change_pct - a.wow_change_pct)\n  .map(s => `${s.state} ${labels[s.product]} ${signed(s.wow_change_pct)}`);\n\nconst lines = [\n  `⛽ FleetFuel Weekly — week of ${day}/${month}/${year}`,\n  '',\n  'National average (vs last week)',\n  ...nationalLines,\n  '',\n  'Biggest Diesel S10 increases',\n  topIncreases.length ? topIncreases.join('   ') : 'none',\n  '',\n  'Ethanol vs gasoline',\n  `Ethanol pays in ${states.filter(s => s.ethanol_pays).length} of ${states.length} states (ratio ${nationalRatio}%)`,\n  `Flipped to ethanol this week: ${list(flippedTo('flipped_to_ethanol'))}`,\n  `Flipped to gasoline this week: ${list(flippedTo('flipped_to_gasoline'))}`,\n  '',\n  `⚠️ Spikes above ${Number(data.config.spike_threshold_pct)}%: ${list(spikes)}`,\n];\n\nreturn [{ json: { text: lines.join('\\n') } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
+        1320,
         -120
       ],
       "id": "4c2a6a70-c029-4500-8c60-93428f7df4ef",
@@ -276,7 +276,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1320,
+        1540,
         -120
       ],
       "id": "72a4ef84-a064-4a18-b22f-fe5922215364",
@@ -287,6 +287,40 @@
           "name": "Telegram account"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "0018eef1-ae0d-45be-9511-0c75e633c53c",
+              "leftValue": "={{ $json.result.data_array[0][0] !== 'false' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        -120
+      ],
+      "id": "da2200f7-3777-40d0-a08b-2fbaee2ba8cf",
+      "name": "New ANP data?"
     }
   ],
   "connections": {
@@ -339,7 +373,7 @@
       "main": [
         [
           {
-            "node": "Build message",
+            "node": "New ANP data?",
             "type": "main",
             "index": 0
           }
@@ -403,20 +437,42 @@
           }
         ]
       ]
+    },
+    "New ANP data?": {
+      "main": [
+        [
+          {
+            "node": "Build message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
-    "timezone": "America/Sao_Paulo"
+    "timezone": "America/Sao_Paulo",
+    "errorWorkflow": "pipelinealerts01"
   },
-  "staticData": null,
+  "staticData": {
+    "node:Every Monday 08:00": {
+      "recurrenceRules": [
+        null
+      ],
+      "recurrenceRuleSignatures": [
+        null
+      ]
+    }
+  },
   "meta": null,
   "nodeGroups": [],
   "pinData": {},
-  "versionId": "dcafafe2-8e0c-4b25-9c40-37e1cf11c2ab",
-  "activeVersionId": null,
-  "versionCounter": 2,
-  "triggerCount": 0,
+  "versionId": "7f094867-372f-4ddf-8390-9b2c766c1dd3",
+  "activeVersionId": "7f094867-372f-4ddf-8390-9b2c766c1dd3",
+  "versionCounter": 3,
+  "triggerCount": 1,
   "sourceWorkflowId": null,
   "tags": [],
   "versionMetadata": {
