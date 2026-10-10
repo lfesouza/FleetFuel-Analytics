@@ -102,3 +102,27 @@ FROM gold.fact_price f
 LEFT JOIN gold.dim_date d ON f.date_key = d.date_key
 LEFT JOIN gold.dim_location l ON f.location_key = l.location_key
 LEFT JOIN gold.dim_product p ON f.product_key = p.product_key;
+
+-- COMMAND ----------
+
+-- Run log read by the n8n alerts: one row per successful run (append-only). Sits after the quality
+-- checks, so a failed check leaves no row; failed runs are detected through the Jobs API instead.
+CREATE TABLE IF NOT EXISTS gold.ops_run_log (
+  run_at TIMESTAMP,
+  max_collection_date DATE,
+  rows_bronze BIGINT,
+  rows_silver BIGINT,
+  rows_fact BIGINT,
+  status STRING
+);
+
+-- COMMAND ----------
+
+INSERT INTO gold.ops_run_log
+SELECT
+  current_timestamp(),
+  (SELECT max(collected_on) FROM silver.prices),
+  (SELECT count(*) FROM bronze.prices_raw),
+  (SELECT count(*) FROM silver.prices),
+  (SELECT count(*) FROM gold.fact_price),
+  'SUCCESS';

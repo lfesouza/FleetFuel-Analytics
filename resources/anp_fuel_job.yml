@@ -55,3 +55,15 @@ resources:
             notebook_path: ../src/04_gold.sql
             base_parameters:
               catalog: ${var.catalog}
+
+        # Views and thresholds read by the n8n weekly digest (automation/).
+        - task_key: digest_views
+          depends_on:
+            - task_key: gold
+          notebook_task:
+            notebook_path: ../src/05_digest_views.sql
+            base_parameters:
+              catalog: ${var.catalog}
+              ratio_threshold: ${var.ratio_threshold}
+              spike_threshold: ${var.spike_threshold}
+              min_stations: ${var.min_stations}
