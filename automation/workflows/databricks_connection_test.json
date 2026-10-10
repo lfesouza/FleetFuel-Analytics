@@ -1,0 +1,265 @@
+{
+  "updatedAt": "2026-10-10T21:59:37.061Z",
+  "createdAt": "2026-10-10T21:45:14.382Z",
+  "id": "Qa9aeM6FjeGsmOJc",
+  "name": "databricks_connection_test",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "b89c5228-bf09-4552-8119-f70b710e3699",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.DATABRICKS_HOST }}/api/2.0/sql/statements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"warehouse_id\": \"{{ $env.DATABRICKS_WAREHOUSE_ID }}\",\n  \"statement\": \"SELECT * FROM anp_fuel.gold.vw_weekly_national\",\n  \"wait_timeout\": \"30s\",\n  \"on_wait_timeout\": \"CONTINUE\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        208,
+        0
+      ],
+      "id": "d28be297-3fb1-4bb5-9608-23f63dd8ebbf",
+      "name": "Submit statement",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bYmt1I6Rnosdq1Of",
+          "name": "Databricks PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.status.state }}",
+                    "rightValue": "SUCCEEDED",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "b810072b-184b-4e5a-b8ac-68b987d774f9"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "succeeded"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "3b658410-2180-4073-a7eb-5dd135577d86",
+                    "leftValue": "={{ [\"PENDING\",\"RUNNING\"].includes($json.status.state) && $runIndex < 24 }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "waiting"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        432,
+        -16
+      ],
+      "id": "8e861ebd-3d13-4e69-b010-b06e67550f19",
+      "name": "Check state"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        192
+      ],
+      "id": "defe0cbc-84ba-4839-8cec-e1ed0b00c725",
+      "name": "Wait",
+      "webhookId": "853b1047-270f-48cf-a606-de9e71b472be"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.DATABRICKS_HOST }}/api/2.0/sql/statements/{{ $json.statement_id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        832,
+        256
+      ],
+      "id": "32705641-08ac-4705-b1cd-ce116cd309e4",
+      "name": "Poll statement",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bYmt1I6Rnosdq1Of",
+          "name": "Databricks PAT"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "errorMessage": "=Statement {{ $json.statement_id }} ended as {{ $json.status.state }}: {{ $json.status.error?.message ?? 'timed out after 2 minutes' }}"
+      },
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        832,
+        32
+      ],
+      "id": "3286c567-8088-4406-a4a0-3377b5542194",
+      "name": "Stop and Error"
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst columns = res.manifest.schema.columns;   // [{ name, type_name, position }]\nconst rows = res.result?.data_array ?? [];      // the API returns every value as a string\n\nconst numericTypes = ['INT', 'LONG', 'SHORT', 'BYTE', 'FLOAT', 'DOUBLE', 'DECIMAL'];\n\nconst cast = (value, type) => {\n  if (value === null) return null;\n  return numericTypes.includes(type) ? Number(value) : value;\n};\n\nreturn rows.map(row => ({\n  json: Object.fromEntries(\n    columns.map((col, i) => [col.name, cast(row[i], col.type_name)])\n  ),\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -192
+      ],
+      "id": "012874bc-900c-479d-b7a0-3ead54edc2ca",
+      "name": "To rows"
+    }
+  ],
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Submit statement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Submit statement": {
+      "main": [
+        [
+          {
+            "node": "Check state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check state": {
+      "main": [
+        [
+          {
+            "node": "To rows",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stop and Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Poll statement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Poll statement": {
+      "main": [
+        [
+          {
+            "node": "Check state",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": {},
+  "versionId": "dc28b238-53fd-4d6e-b0e2-ca62714e304d",
+  "activeVersionId": null,
+  "versionCounter": 54,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
